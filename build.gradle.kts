@@ -1,7 +1,7 @@
 import com.github.c64lib.retroassembler.domain.AssemblerType
 
 plugins {
-    id("com.github.c64lib.retro-assembler") version "1.6.0"
+    id("com.github.c64lib.retro-assembler") version "1.8.0"
     id("com.github.hierynomus.license") version "0.16.1"
 }
 
