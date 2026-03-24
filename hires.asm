@@ -21,13 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-.macro createHires() {
+.macro createHires(bitmapPtr, screenMemoryPtr) {
+
+    // Jump table
     .label init = *
     jmp _init
     .label clear = *
     jmp _clear
-    .label setColors = *
-    jmp _setColors
+    .label resetColours = *
+    jmp _resetColours
+    .label setColours = *
+    jmp _setColours
     .label plot = *
     jmp _plot
     .label moveTo = *
@@ -35,15 +39,65 @@
     .label lineTo = *
     jmp _lineTo
 
+    // Labels
+    .label DEFAULT_COLOUR = LIGHT_GREY + 16*DARK_GREY
+
+    // Methods
     _init: {
+        lda #0
+        sta __posX
+        sta __posX + 1
+        sta __posY
+        lda #DEFAULT_COLOUR
+        sta __colours
+        jsr _resetColours
+        jsr _clear
         rts
     }
 
     _clear: {
+        lda #<bitmapPtr
+        sta targetAddress
+        lda #>bitmapPtr
+        sta targetAddress + 1
+
+        ldy #40
+        outer:
+            ldx #0
+            lda #0
+            inner:
+                sta targetAddress:$a000, x
+                inx
+                cpx #200
+            bne inner
+            lda targetAddress
+            clc
+            adc #200
+            sta targetAddress
+            bcc !+
+                inc targetAddress + 1
+            !:
+            dey
+        bne outer
         rts
     }
 
-    _setColors: {
+    _resetColours: {
+        lda __colours
+        ldx #0
+        !:
+            sta screenMemoryPtr, x
+            sta screenMemoryPtr + 200, x
+            sta screenMemoryPtr + 400, x
+            sta screenMemoryPtr + 600, x
+            inx
+            cpx #200
+            bne !-
+        rts
+    }
+
+    _setColours: {
+        sta __colours
         rts
     }
 
@@ -52,10 +106,18 @@
     }
 
     _moveTo: {
+        sty __posY
+        sta __posX
+        stx __posX + 1
         rts
     }
 
     _lineTo: {
         rts
     }
+
+    // Variables
+    __posX: .word 0
+    __posY: .byte 0
+    __colours: .byte DEFAULT_COLOUR
 }
