@@ -55,28 +55,19 @@ start:
     jsr hires.init
 
     setColours(hires, BLACK, LIGHT_GREY)
-    jsr hires.clear
 
     plot(hires, 0, 0)
-    plot(hires, 1, 0)
-    plot(hires, 2, 0)
-    plot(hires, 7, 0)
-
-    plot(hires, 8, 0)
-    plot(hires, 16, 0)
-    plot(hires, 24, 0)
-    plot(hires, 32, 0)
-
-    plot(hires, 0, 1)
-    plot(hires, 1, 1)
-    plot(hires, 2, 1)
-
-    plot(hires, 0, 2)
-    plot(hires, 1, 2)
-    plot(hires, 2, 2)
+    plot(hires, 10, 10)
+    plot(hires, 20, 20)
+    plot(hires, 30, 30)
 
     plot(hires, 160, 100)
     plot(hires, 319, 199)
+
+    moveTo(hires, 100, 80)
+    lineTo(hires, 200, 100)
+    lineTo(hires, 180, 150)
+    lineTo(hires, 100, 80)
 
     !: jmp !-
 
