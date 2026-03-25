@@ -102,7 +102,79 @@
     }
 
     _plot: {
+        // In:  A = x lo byte, X = x hi byte (0 or 1), Y = y (0–199)
+        // Y is preserved throughout and used as the table index directly.
+
+        sta __xLo
+        stx __xHi
+
+        // ── Pixel bitmask: table[$80 >> (xLo & 7)] ───────────────────
+        and #%00000111              // xLo & 7  (A still has xLo from entry)
+        tax
+        lda __maskTable, x
+        sta __mask
+
+        // ── Bitmap address ────────────────────────────────────────────
+        //
+        // addr = __bmYOff[y]           (bitmapPtr + row*320 + ySub, from table)
+        //      + (xLo & $F8)           (byte column within the row)
+        //      + xHi * 256             (high byte contribution)
+        //
+        // Carry from lo addition flows naturally into the hi byte.
+
+        lda __xLo
+        and #%11111000              // zero the 3 sub-pixel bits
+        clc
+        adc __bmYOffLo, y           // lo = (xLo & $F8) + table_lo[y]
+        sta __rdAddr                // self-modify: read address lo byte
+        sta __wrAddr                // self-modify: write address lo byte
+        lda __bmYOffHi, y
+        adc __xHi                   // hi = table_hi[y] + xHi + carry
+        sta __rdAddr + 1            // self-modify: read address hi byte
+        sta __wrAddr + 1            // self-modify: write address hi byte
+
+        // ── Read–modify–write the bitmap byte ────────────────────────
+        lda __rdAddr:$1234
+        ora __mask
+        sta __wrAddr:$1234
+
+        // ── Screen colour address ─────────────────────────────────────
+        //
+        // addr = __scrYOff[y]          (screenMemoryPtr + row*40, from table)
+        //      + col                   (col = xHi*32 | xLo>>3, range 0–39)
+        //
+        // col fits in 6 bits: xLo>>3 uses bits 4:0, xHi<<5 uses bit 5 — no overlap.
+
+        lda __xHi
+        asl
+        asl
+        asl
+        asl
+        asl                         // xHi * 32  (0 or 32)
+        sta __tmp
+        lda __xLo
+        lsr
+        lsr
+        lsr                         // xLo >> 3  (0–31)
+        ora __tmp                   // col = 0–39
+        clc
+        adc __scrYOffLo, y          // lo = col + table_lo[y]
+        sta __clrAddr               // self-modify: colour write lo byte
+        lda __scrYOffHi, y
+        adc #0                      // propagate carry only
+        sta __clrAddr + 1           // self-modify: colour write hi byte
+
+        // ── Write colour to screen memory ─────────────────────────────
+        lda __colours
+        sta __clrAddr:$1234
+
         rts
+
+        // Local scratch
+        __xLo:  .byte 0
+        __xHi:  .byte 0
+        __mask: .byte 0
+        __tmp:  .byte 0
     }
 
     _moveTo: {
@@ -120,4 +192,28 @@
     __posX: .word 0
     __posY: .byte 0
     __colours: .byte DEFAULT_COLOUR
+
+    //
+    // Pixel bitmask: $80 >> (x & 7)
+    //
+    __maskTable:
+        .byte $80, $40, $20, $10, $08, $04, $02, $01
+
+    //
+    // Bitmap byte offset for each Y scanline (0–199), base address included.
+    // Formula: bitmapPtr + (y/8)*320 + (y%8)
+    //
+    __bmYOffLo:
+        .fill 200, <(bitmapPtr + (i/8)*320 + mod(i, 8))
+    __bmYOffHi:
+        .fill 200, >(bitmapPtr + (i/8)*320 + mod(i, 8))
+
+    //
+    // Screen memory offset for each Y scanline (0–199), base address included.
+    // Formula: screenMemoryPtr + (y/8)*40
+    //
+    __scrYOffLo:
+        .fill 200, <(screenMemoryPtr + (i/8)*40)
+    __scrYOffHi:
+        .fill 200, >(screenMemoryPtr + (i/8)*40)
 }
