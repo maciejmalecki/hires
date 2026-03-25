@@ -21,6 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+.macro setColours(hires, fg, bg) {
+    lda #(16*fg + bg)
+    jsr hires.setColours
+}
+
+.macro plot(hires, x, y) {
+    lda #<x
+    ldx #>x
+    ldy #y
+    jsr hires.plot
+}
+
 .macro createHires(bitmapPtr, screenMemoryPtr) {
 
     // Jump table
@@ -90,6 +103,7 @@
             sta screenMemoryPtr + 200, x
             sta screenMemoryPtr + 400, x
             sta screenMemoryPtr + 600, x
+            sta screenMemoryPtr + 800, x
             inx
             cpx #200
             bne !-
@@ -194,26 +208,24 @@
     __colours: .byte DEFAULT_COLOUR
 
     //
-    // Pixel bitmask: $80 >> (x & 7)
+    // Pixel bitmask
     //
     __maskTable:
         .byte $80, $40, $20, $10, $08, $04, $02, $01
 
     //
     // Bitmap byte offset for each Y scanline (0–199), base address included.
-    // Formula: bitmapPtr + (y/8)*320 + (y%8)
     //
     __bmYOffLo:
-        .fill 200, <(bitmapPtr + (i/8)*320 + mod(i, 8))
+        .fill 200, <(bitmapPtr + (i>>3)*320 + mod(i, 8))
     __bmYOffHi:
-        .fill 200, >(bitmapPtr + (i/8)*320 + mod(i, 8))
+        .fill 200, >(bitmapPtr + (i>>3)*320 + mod(i, 8))
 
     //
     // Screen memory offset for each Y scanline (0–199), base address included.
-    // Formula: screenMemoryPtr + (y/8)*40
     //
     __scrYOffLo:
-        .fill 200, <(screenMemoryPtr + (i/8)*40)
+        .fill 200, <(screenMemoryPtr + (i>>3)*40)
     __scrYOffHi:
-        .fill 200, >(screenMemoryPtr + (i/8)*40)
+        .fill 200, >(screenMemoryPtr + (i>>3)*40)
 }

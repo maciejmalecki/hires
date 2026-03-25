@@ -8,10 +8,6 @@ plugins {
 retroProject {
     dialect = AssemblerType.KickAssembler
     dialectVersion = "5.25"
-    libDirs = arrayOf(".ra/deps/c64lib", "build/charpad", "build/spritepad", "build/goattracker")
-
-    libFromGitHub("c64lib/common", "0.5.1")
-    libFromGitHub("c64lib/chipset", "0.5.1")
 }
 
 license {
